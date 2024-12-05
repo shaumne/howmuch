@@ -1,0 +1,35 @@
+{
+    "@hello": {
+        "placeholders": {
+            "username": {
+                "type": "String"
+            }
+        }
+    },
+    "@status": {
+        "placeholders": {
+            "status": {
+                "type": "String"
+            }
+        }
+    },
+    "@scanBarcode": {
+        "placeholders": {
+            "code": {
+                "type": "String"
+            }
+        }
+    },
+    "appName": "Ne Kadar?",
+    "searchHint": "Ürün ara veya barkod tara",
+    "hello": "Merhaba {username}",
+    "readyToFind": "En uygun fiyatları bulmaya hazır mısın?",
+    "markets": "Marketler",
+    "addNewProduct": "Yeni Ürün",
+    "comingSoon": "Yakında eklenecek!",
+    "status": "Durum: {status}",
+    "open": "Açık",
+    "closed": "Kapalı",
+    "scanBarcode": "Barkod: {code}",
+    "priceComparison": "Fiyat Karşılaştırma"
+} 

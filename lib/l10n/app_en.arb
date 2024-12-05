@@ -1,0 +1,35 @@
+{
+    "@hello": {
+        "placeholders": {
+            "username": {
+                "type": "String"
+            }
+        }
+    },
+    "@status": {
+        "placeholders": {
+            "status": {
+                "type": "String"
+            }
+        }
+    },
+    "@scanBarcode": {
+        "placeholders": {
+            "code": {
+                "type": "String"
+            }
+        }
+    },
+    "appName": "How Much?",
+    "searchHint": "Search product or scan barcode",
+    "hello": "Hello {username}",
+    "readyToFind": "Ready to find the best prices?",
+    "markets": "Markets",
+    "addNewProduct": "New Product",
+    "comingSoon": "Coming Soon!",
+    "status": "Status: {status}",
+    "open": "Open",
+    "closed": "Closed",
+    "scanBarcode": "Barcode: {code}",
+    "priceComparison": "Price Comparison"
+} 
