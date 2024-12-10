@@ -26,19 +26,16 @@ class MarketProvider with ChangeNotifier {
   // Market verilerini dinle
   void initMarkets() {
     _setLoading(true);
-    _marketService.getMarkets().listen(
-      (marketList) {
-        _markets = marketList;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = 'Market verilerini alırken bir hata oluştu: $e';
-        print(_error);
-        notifyListeners();
-      },
-    );
+    try {
+      // Statik market listesini kullan
+      _markets = _fetchNearbyMarkets();
+      _error = null;
+    } catch (e) {
+      _error = 'Market verilerini alırken bir hata oluştu: $e';
+      print(_error);
+    }
     _setLoading(false);
+    notifyListeners();
   }
 
   // Market durumunu güncelle
@@ -91,13 +88,36 @@ class MarketProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _fetchNearbyMarkets() async {
-    try {
-      // TODO: Firebase'den yakındaki marketleri çek
-      _error = null;
-    } catch (e) {
-      _error = 'Marketler yüklenirken hata oluştu: $e';
-    }
-    notifyListeners();
+  bool isMarketOpen(TimeOfDay openTime, TimeOfDay closeTime) {
+    final now = TimeOfDay.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+    final openMinutes = openTime.hour * 60 + openTime.minute;
+    final closeMinutes = closeTime.hour * 60 + closeTime.minute;
+
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+  }
+
+  List<MarketModel> _fetchNearbyMarkets() {
+    return [
+      MarketModel(
+        id: 'bim',
+        name: 'BİM',
+        logo: 'assets/images/markets/bim_logo.png',
+        status:
+            isMarketOpen(
+                  const TimeOfDay(hour: 9, minute: 0),
+                  const TimeOfDay(hour: 21, minute: 30),
+                )
+                ? 'Açık'
+                : 'Kapalı',
+        distance: '',
+        address: '',
+        rating: 0,
+        website: 'https://www.bim.com.tr',
+        categories: ['Market'],
+        lastUpdated: DateTime.now(),
+      ),
+      // ... diğer marketler
+    ];
   }
 }
