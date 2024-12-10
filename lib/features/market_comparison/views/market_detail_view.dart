@@ -18,32 +18,39 @@ class MarketDetailView extends StatelessWidget {
 
     return Scaffold(
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverAppBar.large(
+          SliverAppBar(
             expandedHeight: 200,
+            floating: false,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.primaryContainer.withAlpha(204),
-                    ],
-                  ),
-                ),
-                child: Center(
-                  child: Image.asset(
-                    market['logo']!,
-                    height: 100,
-                    fit: BoxFit.contain,
-                  ),
+              title: Text(
+                market['name'] ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(market['logo'] ?? '', fit: BoxFit.cover),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            title: Text(market['name']!),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -51,151 +58,150 @@ class MarketDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Market Bilgileri
+                  // Market Bilgi Kartı
                   Card(
+                    elevation: 4,
+                    shadowColor: theme.colorScheme.primary.withOpacity(0.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Market Bilgileri',
-                            style: theme.textTheme.titleLarge,
-                          ),
-                          const Divider(),
-                          ListTile(
-                            leading: Icon(
-                              market['status'] == 'Açık'
-                                  ? Icons.check_circle
-                                  : Icons.close,
-                              color:
-                                  market['status'] == 'Açık'
-                                      ? Colors.green
-                                      : Colors.red,
-                            ),
-                            title: Text(market['name']!),
-                            subtitle: Text('Durum: ${market['status']}'),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.store_rounded,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Market Durumu',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      market['status'] ?? 'Bilinmiyor',
+                                      style: TextStyle(
+                                        color:
+                                            market['status'] == 'Açık'
+                                                ? Colors.green
+                                                : Colors.red,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // A101 için katalog gösterimi
-                  if (market['id'] == 'a101')
-                    StreamBuilder<DocumentSnapshot>(
-                      stream:
-                          FirebaseFirestore.instance
-                              .collection('catalogs')
-                              .doc('a101')
-                              .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+                  // Kataloglar Başlığı
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 16),
+                    child: Text(
+                      'Güncel Kataloglar',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
 
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Hata: ${snapshot.error}'));
-                        }
+                  // Katalog Listesi
+                  StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('catalogs')
+                            .where('marketId', isEqualTo: market['id'])
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      print('Connection State: ${snapshot.connectionState}');
+                      print('Has Error: ${snapshot.hasError}');
+                      print('Error: ${snapshot.error}');
+                      if (snapshot.hasData) {
+                        print('Documents count: ${snapshot.data?.docs.length}');
+                        print('Market ID: ${market['id']}');
+                        snapshot.data?.docs.forEach((doc) {
+                          print('Catalog Data: ${doc.data()}');
+                        });
+                      }
 
-                        final data =
-                            snapshot.data?.data() as Map<String, dynamic>?;
-                        final imageUrl = data?['imageUrl'] as String?;
-                        final lastUpdated = data?['lastUpdated'] as Timestamp?;
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                        if (imageUrl == null || imageUrl.isEmpty) {
-                          return const Center(
-                            child: Text('Katalog bulunamadı'),
-                          );
-                        }
+                      if (snapshot.hasError) {
+                        print('Firestore Error: ${snapshot.error}');
+                        return Center(child: Text('Hata: ${snapshot.error}'));
+                      }
 
-                        return Card(
+                      final catalogs = snapshot.data?.docs ?? [];
+
+                      if (catalogs.isEmpty) {
+                        print('No catalogs found for market: ${market['id']}');
+                        return Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Güncel Katalog',
-                                        style: theme.textTheme.titleLarge,
-                                      ),
-                                    ),
-                                    if (lastUpdated != null)
-                                      Flexible(
-                                        child: Text(
-                                          'Son güncelleme: ${DateFormat('dd/MM/yyyy').format(lastUpdated.toDate())}',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                              ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                  ],
+                              Icon(
+                                Icons.auto_stories_outlined,
+                                size: 64,
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.5,
                                 ),
                               ),
-                              InteractiveViewer(
-                                minScale: 0.5,
-                                maxScale: 4.0,
-                                child: Image.network(
-                                  imageUrl.trim(),
-                                  fit: BoxFit.contain,
-                                  loadingBuilder: (
-                                    context,
-                                    child,
-                                    loadingProgress,
-                                  ) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value:
-                                            loadingProgress
-                                                        .expectedTotalBytes !=
-                                                    null
-                                                ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                                : null,
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    print('Resim yükleme hatası: $error');
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: Text('Katalog yüklenemedi'),
-                                      ),
-                                    );
-                                  },
+                              const SizedBox(height: 16),
+                              Text(
+                                'Henüz katalog bulunmuyor',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.7,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         );
-                      },
-                    ),
+                      }
 
-                  const SizedBox(height: 16),
-                  // Web sitesi butonu
-                  ElevatedButton.icon(
-                    onPressed: () => _launchMarketWebsite(market['website']),
-                    icon: const Icon(Icons.public),
-                    label: const Text('Web Sitesini Ziyaret Et'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: catalogs.length,
+                        itemBuilder: (context, index) {
+                          final catalog =
+                              catalogs[index].data() as Map<String, dynamic>;
+                          print('Building catalog: $catalog');
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildCatalogCard(context, catalog, theme),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),
@@ -206,10 +212,213 @@ class MarketDetailView extends StatelessWidget {
     );
   }
 
-  Future<void> _launchMarketWebsite(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+  Widget _buildCatalogCard(
+    BuildContext context,
+    Map<String, dynamic> catalog,
+    ThemeData theme,
+  ) {
+    return Card(
+      elevation: 4,
+      shadowColor: theme.colorScheme.primary.withOpacity(0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.8),
+                  theme.colorScheme.primary,
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.auto_stories_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    catalog['title'] ?? 'Katalog',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.touch_app_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Dokun',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _showFullScreenImage(context, catalog['imageUrl']),
+            child: Hero(
+              tag: 'catalog-${catalog['id']}',
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  child: Image.network(
+                    catalog['imageUrl'] ?? '',
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value:
+                                loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: theme.colorScheme.error,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Resim yüklenemedi',
+                                style: TextStyle(
+                                  color: theme.colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null) return;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(8),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 5.0,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    child: Image.network(imageUrl, fit: BoxFit.contain),
+                  ),
+                ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Material(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(30),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () => Navigator.pop(context),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
   }
 }
