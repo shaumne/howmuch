@@ -81,15 +81,12 @@ class LoginView extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: () => _handleGoogleLogin(context),
                     style: FilledButton.styleFrom(
-                      minimumSize: Size(double.infinity, 56),
+                      minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      height: 24,
-                    ),
+                    icon: const Icon(Icons.g_mobiledata),
                     label: Text(
                       'Google ile Giriş Yap',
                       style: theme.textTheme.titleMedium?.copyWith(
