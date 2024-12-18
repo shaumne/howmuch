@@ -6,6 +6,7 @@ import '../models/market_model.dart';
 import 'barcode_scanner_view.dart';
 import 'market_detail_view.dart';
 import 'dart:ui';
+import '../../admin/views/admin_panel_view.dart';
 
 class MarketComparisonView extends StatefulWidget {
   const MarketComparisonView({super.key});
@@ -45,6 +46,16 @@ class _MarketComparisonViewState extends State<MarketComparisonView> {
               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
             ),
             actions: [
+              if (context.watch<app_auth.AuthProvider>().isAdmin)
+                IconButton(
+                  icon: Icon(Icons.admin_panel_settings),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AdminPanelView(),
+                    ),
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () => _navigateToNotifications(context),

@@ -181,81 +181,38 @@ class MarketDetailView extends StatelessWidget {
 
                   // Katalog Listesi
                   StreamBuilder<QuerySnapshot>(
-                    stream:
-                        FirebaseFirestore.instance
-                            .collection('catalogs')
-                            .where('marketId', isEqualTo: market['id'])
-                            .snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('catalogs')
+                        .where('marketId', isEqualTo: market['id'])
+                        .where('isApproved', isEqualTo: true)
+                        .orderBy('createdAt', descending: true)
+                        .orderBy('__name__', descending: true)
+                        .snapshots(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
                       if (snapshot.hasError) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32.0),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 48,
-                                  color: theme.colorScheme.error,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Bir hata oluştu',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: theme.colorScheme.error,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                        return const Center(child: Text('Bir hata oluştu'));
                       }
 
-                      final catalogs = snapshot.data?.docs ?? [];
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                      if (catalogs.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32.0),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.auto_stories_outlined,
-                                  size: 64,
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Henüz katalog bulunmuyor',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                      final docs = snapshot.data?.docs.where((doc) {
+                        final endDate = doc['endDate'] as Timestamp;
+                        return endDate.toDate().isAfter(DateTime.now());
+                      }).toList() ?? [];
+
+                      if (docs.isEmpty) {
+                        return const Center(child: Text('Aktif katalog bulunmuyor'));
                       }
 
                       return ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: catalogs.length,
+                        itemCount: docs.length,
                         itemBuilder: (context, index) {
                           final catalog =
-                              catalogs[index].data() as Map<String, dynamic>;
+                              docs[index].data() as Map<String, dynamic>;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: _buildCatalogCard(context, catalog, theme),

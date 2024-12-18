@@ -7,13 +7,62 @@ class MarketService {
 
   // Tüm marketleri getir
   Stream<List<MarketModel>> getMarkets() {
-    return _firestore.collection(_collection).orderBy('name').snapshots().map((
-      snapshot,
-    ) {
-      return snapshot.docs
-          .map((doc) => MarketModel.fromJson(doc.data()))
-          .toList();
+    return _firestore
+        .collection(_collection)
+        .orderBy('name')
+        .snapshots()
+        .map((snapshot) {
+      try {
+        final markets = snapshot.docs.map((doc) {
+          try {
+            final data = doc.data();
+            // Market verisi doğrulama
+            if (_isValidMarketData(data)) {
+              return MarketModel.fromJson(data);
+            }
+            return null;
+          } catch (e) {
+            print('Market dönüştürme hatası: $e');
+            return null;
+          }
+        }).whereType<MarketModel>().toList();
+
+        // Eğer hiç geçerli market yoksa varsayılan market listesini döndür
+        if (markets.isEmpty) {
+          return _getDefaultMarkets();
+        }
+
+        return markets;
+      } catch (e) {
+        print('Market listesi oluşturma hatası: $e');
+        return _getDefaultMarkets();
+      }
     });
+  }
+
+  bool _isValidMarketData(Map<String, dynamic> data) {
+    return data.containsKey('name') &&
+        data.containsKey('status') &&
+        data.containsKey('logo') &&
+        data['name'] != null &&
+        data['name'].toString().isNotEmpty;
+  }
+
+  List<MarketModel> _getDefaultMarkets() {
+    return [
+      MarketModel(
+        id: 'default',
+        name: 'Varsayılan Market',
+        logo: 'assets/images/markets/default_logo.png',
+        status: 'Kapalı',
+        distance: '',
+        address: '',
+        rating: 0,
+        website: '',
+        categories: ['Market'],
+        lastUpdated: DateTime.now(),
+      ),
+    ];
   }
 
   // Market detaylarını getir
