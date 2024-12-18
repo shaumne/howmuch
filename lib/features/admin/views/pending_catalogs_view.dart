@@ -1,155 +1,132 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
-import '../../catalog/models/catalog_model.dart';
 import '../../catalog/services/catalog_service.dart';
-import '../services/admin_service.dart';
+import '../../catalog/models/catalog_model.dart';
+import '../widgets/catalog_approval_card.dart';
 
 class PendingCatalogsView extends StatelessWidget {
   final CatalogService _catalogService = CatalogService();
 
+  String _getMarketName(String marketId) {
+    switch (marketId) {
+      case 'sok':
+        return 'ŞOK Market';
+      case 'bim':
+        return 'BİM';
+      case 'a101':
+        return 'A101';
+      case 'carrefoursa':
+        return 'CarrefourSA';
+      case 'migros':
+        return 'Migros';
+      default:
+        return 'Diğer';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Onay Bekleyen Kataloglar'),
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Onay Bekleyen Kataloglar'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'ŞOK'),
+              Tab(text: 'BİM'),
+              Tab(text: 'A101'),
+              Tab(text: 'CarrefourSA'),
+              Tab(text: 'Migros'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildMarketCatalogs('sok', context),
+            _buildMarketCatalogs('bim', context),
+            _buildMarketCatalogs('a101', context),
+            _buildMarketCatalogs('carrefoursa', context),
+            _buildMarketCatalogs('migros', context),
+          ],
+        ),
       ),
-      body: StreamBuilder<List<CatalogModel>>(
-        stream: _catalogService.getPendingCatalogs(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Bir hata oluştu'));
-          }
+    );
+  }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+  Widget _buildMarketCatalogs(String marketId, BuildContext context) {
+    return StreamBuilder<List<CatalogModel>>(
+      stream: _catalogService.getPendingCatalogsByMarket(marketId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
+        }
 
-          final catalogs = snapshot.data ?? [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (catalogs.isEmpty) {
-            return Center(child: Text('Onay bekleyen katalog yok'));
-          }
+        final catalogs = snapshot.data ?? [];
 
-          return ListView.builder(
-            itemCount: catalogs.length,
-            itemBuilder: (context, index) {
-              final catalog = catalogs[index];
-              return CatalogApprovalCard(catalog: catalog);
-            },
+        if (catalogs.isEmpty) {
+          return Center(
+            child: Text('${_getMarketName(marketId)} için onay bekleyen katalog bulunmuyor'),
           );
-        },
-      ),
-    );
-  }
-}
+        }
 
-class CatalogApprovalCard extends StatelessWidget {
-  final CatalogModel catalog;
-  final CatalogService _catalogService = CatalogService();
-
-  CatalogApprovalCard({required this.catalog});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.all(8),
-      child: Column(
-        children: [
-          Image.network(
-            catalog.imageUrl,
-            height: 200,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Market ID: ${catalog.marketId}'),
-                Text('Başlangıç: ${DateFormat('dd/MM/yyyy').format(catalog.startDate)}'),
-                Text('Bitiş: ${DateFormat('dd/MM/yyyy').format(catalog.endDate)}'),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.check),
-                      label: Text('Onayla'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                      onPressed: () => _approveCatalog(context),
-                    ),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.close),
-                      label: Text('Reddet'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                      onPressed: () => _showRejectDialog(context),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        return ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: catalogs.length,
+          itemBuilder: (context, index) {
+            final catalog = catalogs[index];
+            return CatalogApprovalCard(
+              catalog: catalog,
+              onApprove: () => _approveCatalog(context, catalog.id),
+              onReject: (reason) => _rejectCatalog(context, catalog.id, reason),
+              onDelete: () => _deleteCatalog(context, catalog.id),
+            );
+          },
+        );
+      },
     );
   }
 
-  Future<void> _approveCatalog(BuildContext context) async {
+  Future<void> _approveCatalog(BuildContext context, String catalogId) async {
     try {
-      await _catalogService.approveCatalog(catalog.id);
+      await _catalogService.approveCatalog(catalogId);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Katalog onaylandı')),
+        const SnackBar(content: Text('Katalog başarıyla onaylandı')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Hata oluştu: $e')),
+        SnackBar(content: Text('Onaylama hatası: $e')),
       );
     }
   }
 
-  Future<void> _showRejectDialog(BuildContext context) async {
-    String reason = '';
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Reddetme Nedeni'),
-        content: TextField(
-          onChanged: (value) => reason = value,
-          decoration: InputDecoration(
-            hintText: 'Reddetme nedenini yazın',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (reason.isNotEmpty) {
-                Navigator.pop(context);
-                try {
-                  await _catalogService.rejectCatalog(catalog.id, reason);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Katalog reddedildi')),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Hata oluştu: $e')),
-                  );
-                }
-              }
-            },
-            child: Text('Reddet'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _rejectCatalog(BuildContext context, String catalogId, String reason) async {
+    try {
+      await _catalogService.rejectCatalog(catalogId, reason);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Katalog reddedildi')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reddetme hatası: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteCatalog(BuildContext context, String catalogId) async {
+    try {
+      await _catalogService.deleteCatalog(catalogId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Katalog başarıyla silindi')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Silme hatası: $e')),
+      );
+    }
   }
 } 

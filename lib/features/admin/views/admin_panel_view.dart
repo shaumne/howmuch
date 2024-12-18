@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../features/authentication/providers/auth_provider.dart';
 import 'pending_catalogs_view.dart';
+import 'approved_catalogs_view.dart';
 
 class AdminPanelView extends StatelessWidget {
   @override
@@ -9,7 +10,7 @@ class AdminPanelView extends StatelessWidget {
     final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     if (!isAdmin) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(
           child: Text('Bu sayfaya erişim yetkiniz yok'),
         ),
@@ -18,15 +19,15 @@ class AdminPanelView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Paneli'),
+        title: const Text('Admin Paneli'),
       ),
       body: ListView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         children: [
           _buildAdminCard(
             context,
-            title: 'Katalog Onayları',
-            icon: Icons.approval,
+            title: 'Onay Bekleyen Kataloglar',
+            icon: Icons.pending_actions,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -34,15 +35,26 @@ class AdminPanelView extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+          _buildAdminCard(
+            context,
+            title: 'Onaylanmış Kataloglar',
+            icon: Icons.check_circle_outline,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ApprovedCatalogsView(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildAdminCard(
             context,
             title: 'Market Yönetimi',
             icon: Icons.store,
             onTap: () {
-              // Market yönetimi sayfasına yönlendirme
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Yakında eklenecek')),
+                const SnackBar(content: Text('Yakında eklenecek')),
               );
             },
           ),

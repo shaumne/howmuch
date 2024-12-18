@@ -33,6 +33,36 @@ class CatalogService {
             .toList());
   }
 
+  // Markete göre onaylanmış katalogları getir
+  Stream<List<CatalogModel>> getApprovedCatalogsByMarket(String marketId) {
+    return _firestore
+        .collection('catalogs')
+        .where('marketId', isEqualTo: marketId)
+        .where('isApproved', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .where((doc) {
+              final endDate = doc['endDate'] as Timestamp;
+              return endDate.toDate().isAfter(DateTime.now());
+            })
+            .map((doc) => CatalogModel.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Markete göre onay bekleyen katalogları getir
+  Stream<List<CatalogModel>> getPendingCatalogsByMarket(String marketId) {
+    return _firestore
+        .collection('catalogs')
+        .where('marketId', isEqualTo: marketId)
+        .where('isApproved', isEqualTo: false)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CatalogModel.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
   // Katalog onaylama
   Future<void> approveCatalog(String catalogId) async {
     await _firestore.collection('catalogs').doc(catalogId).update({
@@ -48,5 +78,14 @@ class CatalogService {
       'rejectionReason': reason,
       'rejectedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  // Katalog silme
+  Future<void> deleteCatalog(String catalogId) async {
+    try {
+      await _firestore.collection('catalogs').doc(catalogId).delete();
+    } catch (e) {
+      throw 'Katalog silinirken bir hata oluştu: $e';
+    }
   }
 } 

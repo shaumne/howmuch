@@ -186,7 +186,6 @@ class MarketDetailView extends StatelessWidget {
                         .where('marketId', isEqualTo: market['id'])
                         .where('isApproved', isEqualTo: true)
                         .orderBy('createdAt', descending: true)
-                        .orderBy('__name__', descending: true)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
